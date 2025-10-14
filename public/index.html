@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#06b6d4" />
+    <meta name="description" content="Aplicación para crear, ver y eliminar tareas o pendientes" />
+    
+    <!-- IMPORTANTE: Esta línea para el manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <title>tarea-pwa</title>
+  </head>
+  <body>
+    <noscript>Necesitas habilitar JavaScript para ejecutar esta app.</noscript>
+    <div id="root"></div>
+    <script>
+        //Registro de SW
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('SW registrado: ', registration);
+        })
+        .catch(function(registrationError) {
+          console.log('Error SW: ', registrationError);
+        });
+    });
+  }
+</script>
+  </body>
+</html>
