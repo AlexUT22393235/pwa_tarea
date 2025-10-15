@@ -45,19 +45,15 @@ function App() {
 
   return (
     <>
-      <div>
-        <div className="flex flex-col">
-          <div>
-            <h3 className="text-5xl mb-4">To Do App</h3>
-            <label className="block text-2xl">Ingresa tu tarea</label>
-            <input className="border-4 rounded-md my-4 w-sm h-12 pl-2" type='text' placeholder='Título de tu tarea' id="tituloTarea" />
-            <button type='submit' className="border-4 rounded-md my-4 w-sm h-12 bg-cyan-500 block mx-auto text-md font-semibold" onClick={guardarTarea}>Agregar tarea</button>
-          </div>
-        </div>
-        <div className="flex flew-row flex-wrap w-auto h-124 overflow-y-auto overscroll-none">
+      <div className="todo-container">
+        <h3 className="todo-title">To Do App</h3>
+        <label className="todo-label" htmlFor="tituloTarea">Ingresa tu tarea</label>
+        <input className="todo-input" type='text' placeholder='Título de tu tarea' id="tituloTarea" />
+        <button type='submit' className="todo-btn" onClick={guardarTarea}>Agregar tarea</button>
+        <div className="tareas-list">
           {titulo_tareas}
         </div>
-        <p style={{fontSize: '0.9em', color: '#888'}}>Tus tareas se guardan localmente y funcionan offline.</p>
+        <p style={{fontSize: '0.9em', color: '#888', marginTop: '1.5rem'}}>Tus tareas se guardan localmente y funcionan offline.</p>
       </div>
     </>
   );
