@@ -2,8 +2,6 @@ const CACHE_NAME = 'tarea-pwa-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.json',
   '/logo192.png'
 ];
@@ -85,5 +83,48 @@ self.addEventListener('fetch', (event) => {
             }
           });
       })
+  );
+});
+
+// Manejar evento push (cuando se envíe una push desde un servidor)
+self.addEventListener('push', function(event) {
+  console.log('Push recibido');
+  let data = { title: 'Nueva notificación', body: 'Tienes una actualización', url: '/' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'Notificación', body: event.data.text() };
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/logo192.png',
+    badge: '/favicon.ico',
+    data: { url: data.url }
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// Manejar click sobre la notificación
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  const openUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Si ya hay una ventana abierta, enfocarla
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url === openUrl && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no, abrir una nueva
+      if (clients.openWindow) {
+        return clients.openWindow(openUrl);
+      }
+    })
   );
 });
