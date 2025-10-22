@@ -3,7 +3,8 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/logo192.png'
+  '/logo192.png',
+  '/offline.html'
 ];
 
 // Instalación - cachear todos los recursos esenciales
@@ -13,7 +14,8 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Cache abierto');
-        return cache.addAll(urlsToCache);
+        // Intentar cachear todos los recursos listados. Algunos pueden fallar en dev, así que usamos Promise.allSettled
+        return Promise.allSettled(urlsToCache.map(u => cache.add(u))).then(() => {});
       })
       .then(() => {
         console.log('Todos los recursos cacheados');
@@ -46,41 +48,40 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Solo manejar peticiones GET
   if (event.request.method !== 'GET') return;
+  // Para navegación (requests de página), intentar network-first, fallback a cache y luego offline.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Actualizar cache con la nueva respuesta
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then(cached => cached || caches.match('/offline.html'));
+        })
+    );
+    return;
+  }
 
+  // Para otros recursos: cache-first
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {
-        // Si existe en cache, devolverlo
-        if (cachedResponse) {
-          console.log('Servido desde cache:', event.request.url);
-          return cachedResponse;
-        }
-
-        // Si no está en cache, hacer petición y cachear
+        if (cachedResponse) return cachedResponse;
         return fetch(event.request)
           .then((response) => {
-            // Verificar que la respuesta sea válida
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
-
-            // Clonar la respuesta para cachear
             const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-                console.log('Nuevo recurso cacheado:', event.request.url);
-              });
-
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
             return response;
           })
-          .catch((error) => {
-            console.log('Error en fetch, sirviendo página offline:', error);
-            // Si es una página HTML y no hay conexión, servir index.html
-            if (event.request.destination === 'document') {
-              return caches.match('/index.html');
-            }
+          .catch(() => {
+            // Si no está en cache y la petición falla, devolver offline.html para navegación ya manejado; aquí solo retornamos undefined
+            return undefined;
           });
       })
   );

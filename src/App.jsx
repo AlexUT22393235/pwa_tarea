@@ -109,29 +109,29 @@ function App() {
     }
     try {
       const registration = await navigator.serviceWorker.ready;
-
-      // TODO: Reemplazar por tu VAPID public key (base64 URL-safe)
-      const vapidPublicKey = '<REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY>';
-      if (vapidPublicKey === '<REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY>') {
-        alert('Suscripción push: agrega tu VAPID public key en el código para completar la suscripción. Se guardará localmente para pruebas.');
-      }
-
-      const convertedVapidKey = vapidPublicKey ? urlBase64ToUint8Array(vapidPublicKey) : null;
+      // Obtener VAPID public key desde el servidor
+      const resp = await fetch('http://localhost:4000/vapidPublicKey');
+      if (!resp.ok) throw new Error('No se pudo obtener VAPID key del servidor');
+      const { publicKey } = await resp.json();
+      const convertedVapidKey = urlBase64ToUint8Array(publicKey);
 
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedVapidKey
-      }).catch(err => {
-        console.error('Error al suscribir push:', err);
-        return null;
       });
 
-      if (sub) {
-        localStorage.setItem('push_subscription', JSON.stringify(sub));
-        setPushSubscribed(true);
-        console.log('Push subscription:', sub);
-        alert('Suscripción push guardada en localStorage. Copia el objeto en la consola para usarlo en el servidor.');
-      }
+      // Enviar la suscripción al servidor
+      const r = await fetch('http://localhost:4000/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub)
+      });
+      if (!r.ok) throw new Error('No se pudo enviar la suscripción al servidor');
+
+      localStorage.setItem('push_subscription', JSON.stringify(sub));
+      setPushSubscribed(true);
+      console.log('Push subscription enviada y guardada:', sub);
+      alert('Suscripción push registrada correctamente.');
     } catch (e) {
       console.error(e);
       alert('Error al suscribir push. Revisa la consola.');
